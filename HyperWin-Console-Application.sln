@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30523.141
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperWin-Console-Application", "HyperWin-Console-Application\HyperWin-Console-Application.vcxproj", "{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Debug|x64.ActiveCfg = Debug|x64
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Debug|x64.Build.0 = Debug|x64
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Debug|x86.ActiveCfg = Debug|Win32
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Debug|x86.Build.0 = Debug|Win32
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Release|x64.ActiveCfg = Release|x64
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Release|x64.Build.0 = Release|x64
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Release|x86.ActiveCfg = Release|Win32
+		{DC01C9DA-BA05-4FE9-8B9A-9024D0EAEB31}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BA1D8948-2B6C-488F-9C07-65032DBF37AD}
+	EndGlobalSection
+EndGlobal
