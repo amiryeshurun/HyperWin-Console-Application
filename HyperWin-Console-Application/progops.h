@@ -5,5 +5,6 @@
 
 VOID ProgramLoop(IN HANDLE CommunicationDriver);
 VOID HandleProtectProcess(IN HANDLE CommunicationDriver, IN PCHAR Buffer);
+VOID HandleGetProcess();
 
 #endif

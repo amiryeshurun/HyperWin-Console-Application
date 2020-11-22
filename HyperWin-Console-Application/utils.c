@@ -24,9 +24,9 @@ HWSTATUS GetProcessIdByName(IN PCHAR ProcessName, OUT PDWORD64 ProcessId)
 
     MultiByteToWideChar(CP_OEMCP, 0, ProcessName, -1, UnicodeProcessName, len + 1);
     Entry.dwSize = sizeof(PROCESSENTRY32W);
-    if (Process32First(Snapshot, &Entry) == TRUE)
+    if (Process32First(Snapshot, &Entry))
     {
-        while (Process32Next(Snapshot, &Entry) == TRUE)
+        while (Process32Next(Snapshot, &Entry))
         {
             if (!wcscmp(Entry.szExeFile, UnicodeProcessName))
             {
