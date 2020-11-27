@@ -3,9 +3,12 @@
 #include "hwstatus.h"
 #include "progops.h"
 
+#define TEST_MODE
+
 INT main()
 {
-    HANDLE Handle;
+    HANDLE Handle = NULL;
+#ifndef TEST_MODE
     if ((Handle = CreateFileA("\\\\.\\HyperWin",
         GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -17,6 +20,7 @@ INT main()
         hvPrint("CreateFile failed: %d\n", GetLastError());
         return HYPERWIN_CREATE_FAILED;
     }
+#endif
 
     ProgramLoop(Handle);
     return 0;

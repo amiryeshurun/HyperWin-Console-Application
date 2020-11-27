@@ -15,20 +15,18 @@ VOID DebugOutA(PCHAR fmt, ...)
 	OutputDebugStringA(str);
 }
 
-HWSTATUS GetProcessIdByName(IN PCHAR ProcessName, OUT PDWORD64 ProcessId)
+HWSTATUS GetProcessIdByName(IN PWCHAR ProcessName, OUT PDWORD64 ProcessId)
 {
     PROCESSENTRY32W Entry;
     HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-    WCHAR UnicodeProcessName[BUFFER_MAX_SIZE];
-    DWORD64 len = strlen(ProcessName);
+    DWORD64 len = wcslen(ProcessName);
 
-    MultiByteToWideChar(CP_OEMCP, 0, ProcessName, -1, UnicodeProcessName, len + 1);
     Entry.dwSize = sizeof(PROCESSENTRY32W);
     if (Process32First(Snapshot, &Entry))
     {
         while (Process32Next(Snapshot, &Entry))
         {
-            if (!wcscmp(Entry.szExeFile, UnicodeProcessName))
+            if (!wcscmp(Entry.szExeFile, ProcessName))
             {
                 *ProcessId = Entry.th32ProcessID;
                 CloseHandle(Snapshot);

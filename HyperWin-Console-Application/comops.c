@@ -24,7 +24,7 @@ HWSTATUS MarkProcessProtected(IN HANDLE Handle, IN HANDLE ProcessHandle)
 {
 	GENERIC_COM_STRUCT Args;
 	Args.Operation = OPERATION_PROTECTED_PROCESS;
-	Args.ArgumentsUnion.protectProcess.Handle = ProcessHandle;
+	Args.ArgumentsUnion.ProtectProcess.Handle = ProcessHandle;
 	INT Dummy;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
 	{

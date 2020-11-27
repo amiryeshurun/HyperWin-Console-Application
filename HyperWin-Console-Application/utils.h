@@ -6,9 +6,9 @@
 #include "hwtypes.h"
 
 VOID DebugOutA(PCHAR fmt, ...);
-HWSTATUS GetProcessIdByName(IN PCHAR ProcessName, OUT PDWORD64 ProcessId);
+HWSTATUS GetProcessIdByName(IN PWCHAR ProcessName, OUT PDWORD64 ProcessId);
 
-#define hvPrint(str, ...) printf("HyperWin :: " \
+#define hvPrint(str, ...) wprintf(L"HyperWin :: " \
 												str, \
 												__VA_ARGS__)
 #define DEBUG_LEVEL_INFO 1

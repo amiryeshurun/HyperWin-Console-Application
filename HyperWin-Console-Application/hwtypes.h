@@ -22,7 +22,7 @@ typedef struct _GENERIC_COM_STRUCT
         struct _PROTECT_PROCESS
         {
             HANDLE Handle;
-        } protectProcess;
+        } ProtectProcess;
     } ArgumentsUnion;
 } GENERIC_COM_STRUCT, * PGENERIC_COM_STRUCT;
 
