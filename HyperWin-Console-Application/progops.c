@@ -24,11 +24,11 @@ VOID ProgramLoop(IN HANDLE CommunicationDriver)
         else if (!wcsncmp(Token, L"get-process", wcslen(L"get-process")))
             HandleGetProcess();
         else if (!wcsncmp(Token, L"protect-file-data", wcslen(L"protect-file-data")))
-            HandleProtectFileData();
+            HandleProtectFileData(CommunicationDriver);
     }
 }
 
-VOID HandleProtectProcess(IN HANDLE CommunicationDriver, IN PWCHAR Buffer)
+VOID HandleProtectProcess(IN HANDLE CommunicationDriver)
 {
     PWCHAR Token;
     DWORD64 ProcessId;
@@ -115,9 +115,12 @@ VOID HandleGetProcess()
     }
 }
 
-VOID HandleProtectFileData()
+VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
 {
-    PWCHAR Token;
+    PWCHAR Token, FilePath = NULL, HiddenContent = NULL;
+    BOOLEAN OperationSpecified = FALSE;
+    DWORD ProtectionOperation = 0;
+
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
         if (!wcsncmp(Token, L"-p", 2))
@@ -127,14 +130,53 @@ VOID HandleProtectFileData()
                 hvPrint(L"You must enter a file path\n");
                 return;
             }
-            OFSTRUCT FileData;
-            // Token now contains the full file path as ANSI string
-            HFILE FileHandle = OpenFile(Token, &FileData, OF_EXIST);
-            if (FileHandle == -1)
+            // Token now contains the full file path as unicode string
+            HANDLE FileHandle;
+            if ((FileHandle = CreateFileW(Token,
+                MAXIMUM_ALLOWED,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                NULL, OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,  
+                NULL)) == NULL)
             {
-                hvPrint(L"This file does not exist\n");
+                if (GetLastError() == ERROR_FILE_NOT_FOUND)
+                {
+                    hvPrint(L"This file does not exist\n");
+                    return;
+                }
+            }
+            CloseHandle(FileHandle);
+            // The file exists, copy the path
+            FilePath = _wcsdup(Token);
+        }
+        if (!wcsncmp(Token, L"-h", 2))
+        {
+            OperationSpecified = TRUE;
+            if (FilePath == NULL)
+            {
+                hvPrint(L"You can not use -h without specifying the file path\n");
                 return;
             }
+            ProtectionOperation = FILE_PROTECTION_HIDE;
+            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
+            {
+                hvPrint(L"You must specify the contect to hide\n");
+                return;
+            }
+            HiddenContent = _wcsdup(Token);
         }
     }
+
+PerformProtection:
+    if (!OperationSpecified)
+    {
+        hvPrint(L"You must specify the protection operation\n");
+        return;
+    }
+    // Send a request to HyperWin
+    if (ProtectFileData(CommunicationDriver, FilePath, ProtectionOperation, HiddenContent, NULL) 
+        != HYPERWIN_STATUS_SUCCUESS)
+        hvPrint(L"Failed to protect the specified data\n");
+    free(FilePath);
+    free(HiddenContent);
 }

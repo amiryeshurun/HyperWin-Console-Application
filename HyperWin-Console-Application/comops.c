@@ -14,7 +14,7 @@ HWSTATUS SendInitSignal(IN HANDLE Handle, IN PGENERIC_COM_STRUCT Args)
 	INT Dummy;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, Args, sizeof(*Args), NULL, 0, &Dummy, NULL))
 	{
-		hvPrint("DeviceIoControl failed: %d\n", GetLastError());
+		hvPrint(L"DeviceIoControl failed: %d\n", GetLastError());
 		return HYPERWIN_IOCTL_FAILED;
 	}
 	return HYPERWIN_STATUS_SUCCUESS;
@@ -28,7 +28,26 @@ HWSTATUS MarkProcessProtected(IN HANDLE Handle, IN HANDLE ProcessHandle)
 	INT Dummy;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
 	{
-		hvPrint("DeviceIoControl failed: %d\n", GetLastError());
+		hvPrint(L"DeviceIoControl failed: %d\n", GetLastError());
+		return HYPERWIN_IOCTL_FAILED;
+	}
+	return HYPERWIN_STATUS_SUCCUESS;
+}
+
+HWSTATUS ProtectFileData(IN HANDLE Handle, IN PWCHAR Path, IN DWORD ProtectionOperation, IN PWCHAR Content,
+	IN PWCHAR Extension)
+{
+	GENERIC_COM_STRUCT Args;
+	Args.Operation = OPERATION_PROTECT_FILE_DATA;
+	Args.ArgumentsUnion.ProtectFileData.FilePathLength = wcslen(Path);
+	memcpy(Args.ArgumentsUnion.ProtectFileData.FilePath, Path, Args.ArgumentsUnion.ProtectFileData.FilePathLength);
+	Args.ArgumentsUnion.ProtectFileData.ContentLength = wcslen(Content);
+	memcpy(Args.ArgumentsUnion.ProtectFileData.Content, Content, Args.ArgumentsUnion.ProtectFileData.ContentLength);
+	Args.ArgumentsUnion.ProtectFileData.ProtectionOperation = ProtectionOperation;
+	INT Dummy;
+	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
+	{
+		hvPrint(L"DeviceIoControl failed: %d\n", GetLastError());
 		return HYPERWIN_IOCTL_FAILED;
 	}
 	return HYPERWIN_STATUS_SUCCUESS;

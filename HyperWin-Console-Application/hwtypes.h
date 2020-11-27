@@ -5,6 +5,7 @@
 #include "x86_64.h"
 
 #define HWSTATUS DWORD64
+#define FILE_PATH_MAX_LENGTH 256
 
 typedef UINT64 OPERATION, * POPERATION;
 
@@ -23,6 +24,14 @@ typedef struct _GENERIC_COM_STRUCT
         {
             HANDLE Handle;
         } ProtectProcess;
+        struct _PROTECT_FILE_DATA
+        {
+            DWORD64 FilePathLength;
+            BYTE FilePath[FILE_PATH_MAX_LENGTH];
+            DWORD64 ContentLength;
+            BYTE Content[FILE_PATH_MAX_LENGTH];
+            DWORD ProtectionOperation;
+        } ProtectFileData;
     } ArgumentsUnion;
 } GENERIC_COM_STRUCT, * PGENERIC_COM_STRUCT;
 
@@ -30,4 +39,10 @@ typedef struct _APPLICATION_DATA
 {
     HWND ProcessNameTextbox;
 } APPLICATION_DATA, *PAPPLICATION_DATA;
+
+enum
+{
+    FILE_PROTECTION_HIDE = 0x1
+};
+
 #endif

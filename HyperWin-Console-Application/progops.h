@@ -4,8 +4,8 @@
 #include "hwtypes.h"
 
 VOID ProgramLoop(IN HANDLE CommunicationDriver);
-VOID HandleProtectProcess(IN HANDLE CommunicationDriver, IN PWCHAR Buffer);
+VOID HandleProtectProcess(IN HANDLE CommunicationDriver);
 VOID HandleGetProcess();
-VOID HandleProtectFileData();
+VOID HandleProtectFileData(IN HANDLE CommunicationDriver);
 
 #endif
