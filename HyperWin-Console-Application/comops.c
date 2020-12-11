@@ -34,17 +34,17 @@ HWSTATUS MarkProcessProtected(IN HANDLE Handle, IN HANDLE ProcessHandle)
 	return HYPERWIN_STATUS_SUCCUESS;
 }
 
-HWSTATUS ProtectFileData(IN HANDLE Handle, IN PWCHAR Path, IN DWORD ProtectionOperation, IN PWCHAR Content,
+HWSTATUS ProtectFileData(IN HANDLE Handle, IN HANDLE FileHandle, IN DWORD ProtectionOperation, IN PWCHAR Content,
 	IN PWCHAR Extension)
 {
 	GENERIC_COM_STRUCT Args;
+	INT Dummy;
+
 	Args.Operation = OPERATION_PROTECT_FILE_DATA;
-	Args.ArgumentsUnion.ProtectFileData.FilePathLength = wcslen(Path);
-	memcpy(Args.ArgumentsUnion.ProtectFileData.FilePath, Path, Args.ArgumentsUnion.ProtectFileData.FilePathLength);
+	Args.ArgumentsUnion.ProtectFileData.FileHandle = FileHandle;
 	Args.ArgumentsUnion.ProtectFileData.ContentLength = wcslen(Content);
 	memcpy(Args.ArgumentsUnion.ProtectFileData.Content, Content, Args.ArgumentsUnion.ProtectFileData.ContentLength);
 	Args.ArgumentsUnion.ProtectFileData.ProtectionOperation = ProtectionOperation;
-	INT Dummy;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
 	{
 		hvPrint(L"DeviceIoControl failed: %d\n", GetLastError());

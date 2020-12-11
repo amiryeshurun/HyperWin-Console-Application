@@ -26,8 +26,7 @@ typedef struct _GENERIC_COM_STRUCT
         } ProtectProcess;
         struct _PROTECT_FILE_DATA
         {
-            DWORD64 FilePathLength;
-            BYTE FilePath[FILE_PATH_MAX_LENGTH];
+            HANDLE FileHandle;
             DWORD64 ContentLength;
             BYTE Content[FILE_PATH_MAX_LENGTH];
             DWORD ProtectionOperation;

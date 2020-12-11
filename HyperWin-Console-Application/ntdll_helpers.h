@@ -21,4 +21,6 @@ typedef NTSTATUS(__stdcall* _NtQueryInformationFile)(
 	ULONG				   FileInformationClass
 	);
 
+#define NT_SUCCESS(STATUS) ((STATUS)>=0) 
+
 #endif

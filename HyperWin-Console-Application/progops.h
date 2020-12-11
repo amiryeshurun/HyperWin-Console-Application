@@ -7,5 +7,6 @@ VOID ProgramLoop(IN HANDLE CommunicationDriver);
 VOID HandleProtectProcess(IN HANDLE CommunicationDriver);
 VOID HandleGetProcess();
 VOID HandleProtectFileData(IN HANDLE CommunicationDriver);
+VOID HandleGetFileId();
 
 #endif

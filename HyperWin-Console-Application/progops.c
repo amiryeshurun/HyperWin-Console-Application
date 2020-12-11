@@ -6,6 +6,7 @@
 #include <string.h>
 #include <Windows.h>
 #include <tlhelp32.h>
+#include "ntdll_helpers.h"
 
 VOID ProgramLoop(IN HANDLE CommunicationDriver)
 {
@@ -25,18 +26,21 @@ VOID ProgramLoop(IN HANDLE CommunicationDriver)
             HandleGetProcess();
         else if (!wcsncmp(Token, L"protect-file-data", wcslen(L"protect-file-data")))
             HandleProtectFileData(CommunicationDriver);
+        else if (!wcscmp(Token, L"get-file-id", wcslen(L"get-file-id")))
+            HandleGetFileId();
     }
 }
 
 VOID HandleProtectProcess(IN HANDLE CommunicationDriver)
 {
-    PWCHAR Token;
+    PWCHAR Token, ProcessName;
     DWORD64 ProcessId;
+    HANDLE ProcessHandle;
+
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
         if (!wcsncmp(Token, L"-n", 2))
         {
-            PWCHAR ProcessName;
             if ((ProcessName = wcstok(NULL, L" ", NULL)) != NULL)
             {
                 if (GetProcessIdByName(ProcessName, &ProcessId) != HYPERWIN_STATUS_SUCCUESS)
@@ -78,8 +82,6 @@ VOID HandleProtectProcess(IN HANDLE CommunicationDriver)
     }
 
 ProtectProcessById:
-    NOP
-    HANDLE ProcessHandle;
     if (ProcessId == -1)
         ProcessHandle = GetCurrentProcess();
     else
@@ -102,8 +104,10 @@ ProtectProcessById:
 VOID HandleGetProcess()
 {
     PROCESSENTRY32W Entry;
-    HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+    HANDLE Snapshot;
     WCHAR ProcessName[BUFFER_MAX_SIZE];
+
+    Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
     Entry.dwSize = sizeof(PROCESSENTRY32W);
 
     if (Process32First(Snapshot, &Entry))
@@ -120,6 +124,7 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
     PWCHAR Token, FilePath = NULL, HiddenContent = NULL;
     BOOLEAN OperationSpecified = FALSE;
     DWORD ProtectionOperation = 0;
+    HANDLE FileHandle = NULL;
 
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
@@ -131,7 +136,6 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
                 return;
             }
             // Token now contains the full file path as unicode string
-            HANDLE FileHandle;
             if ((FileHandle = CreateFileW(Token,
                 MAXIMUM_ALLOWED,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -145,14 +149,11 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
                     return;
                 }
             }
-            CloseHandle(FileHandle);
-            // The file exists, copy the path
-            FilePath = _wcsdup(Token);
         }
         if (!wcsncmp(Token, L"-h", 2))
         {
             OperationSpecified = TRUE;
-            if (FilePath == NULL)
+            if (FileHandle == NULL)
             {
                 hvPrint(L"You can not use -h without specifying the file path\n");
                 return;
@@ -174,9 +175,52 @@ PerformProtection:
         return;
     }
     // Send a request to HyperWin
-    if (ProtectFileData(CommunicationDriver, FilePath, ProtectionOperation, HiddenContent, NULL) 
+    if (ProtectFileData(CommunicationDriver, FileHandle, ProtectionOperation, HiddenContent, NULL) 
         != HYPERWIN_STATUS_SUCCUESS)
         hvPrint(L"Failed to protect the specified data\n");
-    free(FilePath);
     free(HiddenContent);
+    CloseHandle(FileHandle);
+}
+
+VOID HandleGetFileId()
+{
+    PWCHAR Token, FilePath = NULL;
+    HANDLE FileHandle = NULL;
+    _NtQueryInformationFile NtQueryInformationFile;
+    IO_STATUS_BLOCK IoStatusBlock;
+    HWSTATUS Status;
+    DWORD64 FileId;
+    NTSTATUS NtStatus;
+
+    if((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    {
+        // Token now contains a name of a file
+        if ((FileHandle = CreateFileW(Token,
+            MAXIMUM_ALLOWED,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL, OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL)) == NULL)
+        {
+            hvPrint(L"Could not open file: %d", GetLastError());
+            return;
+        }
+        if ((Status = LoadNtdllFunction("NtQueryInformationFile", &NtQueryInformationFile)) != HYPERWIN_STATUS_SUCCUESS)
+        {
+            hvPrint(L"Failed to load NtQuertyInformationFile: %d\n", Status);
+            CloseHandle(FileHandle);
+            return;
+        }
+        NtStatus = NtQueryInformationFile(FileHandle, &IoStatusBlock, &FileId, sizeof(FileId), 6);
+        if (!NT_SUCCESS(NtStatus))
+        {
+            hvPrint(L"Failed to get file info. NTSTATUS: %llx, Error code: %d\n", NtStatus, GetLastError());
+            CloseHandle(FileHandle);
+            return;
+        }
+        wprintf(L"%llx\n", FileId);
+        CloseHandle(FileHandle);
+    }
+    else
+        hvPrint(L"You must enter a file path\n");
 }

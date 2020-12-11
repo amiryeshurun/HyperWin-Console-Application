@@ -2,7 +2,6 @@
 #include "comops.h"
 #include "hwstatus.h"
 #include "progops.h"
-#include "ntdll_helpers.h"
 
 #define TEST_MODE
 
@@ -18,7 +17,7 @@ INT main()
         FILE_ATTRIBUTE_NORMAL,
         NULL)) == INVALID_HANDLE_VALUE)
     {
-        hvPrint("CreateFile failed: %d\n", GetLastError());
+        hvPrint(L"CreateFile failed: %d\n", GetLastError());
         return HYPERWIN_CREATE_FAILED;
     }
 #endif
