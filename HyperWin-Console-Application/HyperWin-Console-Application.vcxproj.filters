@@ -36,6 +36,9 @@
     <ClInclude Include="x86_64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ntdll_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="comops.c">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ntdll_helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -2,6 +2,7 @@
 #include "comops.h"
 #include "hwstatus.h"
 #include "progops.h"
+#include "ntdll_helpers.h"
 
 #define TEST_MODE
 
@@ -21,7 +22,6 @@ INT main()
         return HYPERWIN_CREATE_FAILED;
     }
 #endif
-
     ProgramLoop(Handle);
     return 0;
 }
