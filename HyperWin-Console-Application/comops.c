@@ -42,7 +42,7 @@ HWSTATUS ProtectFileData(IN HANDLE Handle, IN HANDLE FileHandle, IN DWORD Protec
 
 	Args.Operation = OPERATION_PROTECT_FILE_DATA;
 	Args.ArgumentsUnion.ProtectFileData.FileHandle = FileHandle;
-	Args.ArgumentsUnion.ProtectFileData.ContentLength = wcslen(Content);
+	Args.ArgumentsUnion.ProtectFileData.ContentLength = sizeof(WCHAR) * wcslen(Content);
 	memcpy(Args.ArgumentsUnion.ProtectFileData.Content, Content, Args.ArgumentsUnion.ProtectFileData.ContentLength);
 	Args.ArgumentsUnion.ProtectFileData.ProtectionOperation = ProtectionOperation;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
