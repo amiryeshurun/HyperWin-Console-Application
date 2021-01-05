@@ -30,6 +30,7 @@ typedef struct _GENERIC_COM_STRUCT
             DWORD64 ContentLength;
             BYTE Content[FILE_PATH_MAX_LENGTH];
             DWORD ProtectionOperation;
+            DWORD EncodingType;
         } ProtectFileData;
     } ArgumentsUnion;
 } GENERIC_COM_STRUCT, * PGENERIC_COM_STRUCT;
@@ -42,6 +43,12 @@ typedef struct _APPLICATION_DATA
 enum
 {
     FILE_PROTECTION_HIDE = 0x1
+};
+
+enum
+{
+    ENCODING_TYPE_UTF_8 = 0x1,
+    ENCODING_TYPE_UTF_16 = 0x2
 };
 
 #endif

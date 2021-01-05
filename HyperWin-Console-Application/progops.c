@@ -121,9 +121,10 @@ VOID HandleGetProcess()
 
 VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
 {
-    PWCHAR Token, FilePath = NULL, HiddenContent = NULL;
+    PWCHAR Token, FilePath = NULL, ContentUtf16 = NULL;
+    BYTE HiddenContent[BUFFER_MAX_SIZE];
     BOOLEAN OperationSpecified = FALSE;
-    DWORD ProtectionOperation = 0;
+    DWORD ProtectionOperation = 0, EncodingTypeEnum = 0x1;
     HANDLE FileHandle = NULL;
 
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
@@ -164,7 +165,17 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
                 hvPrint(L"You must specify the contect to hide\n");
                 return;
             }
-            HiddenContent = _wcsdup(Token);
+            ContentUtf16 = _wcsdup(Token);
+        }
+        if (!wcsncmp(Token, L"-e", 2))
+        {
+            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
+            {
+                hvPrint(L"You must specify encoding type when using the -e flag\n");
+                return;
+            }
+            if (!wcscmp(Token, L"utf-16"))
+                EncodingTypeEnum = ENCODING_TYPE_UTF_16;
         }
     }
 
@@ -174,11 +185,32 @@ PerformProtection:
         hvPrint(L"You must specify the protection operation\n");
         return;
     }
+    // If the encoding type is utf-8, we must convert the input
+    if (EncodingTypeEnum == ENCODING_TYPE_UTF_8)
+    {
+        WideCharToMultiByte(CP_ACP, 
+            WC_COMPOSITECHECK,
+            ContentUtf16,
+            -1,
+            HiddenContent,
+            BUFFER_MAX_SIZE,
+            NULL,
+            NULL);
+    }
+    // Else, just copy it to the buffer
+    else if (EncodingTypeEnum == ENCODING_TYPE_UTF_16)
+        memcpy(HiddenContent, ContentUtf16, wcslen(ContentUtf16) * sizeof(WCHAR));
     // Send a request to HyperWin
-    if (ProtectFileData(CommunicationDriver, FileHandle, ProtectionOperation, HiddenContent, NULL) 
+    if (ProtectFileData(CommunicationDriver,
+        FileHandle,
+        ProtectionOperation,
+        EncodingTypeEnum,
+        HiddenContent,
+        NULL)
         != HYPERWIN_STATUS_SUCCUESS)
+    {
         hvPrint(L"Failed to protect the specified data\n");
-    free(HiddenContent);
+    }
     CloseHandle(FileHandle);
 }
 

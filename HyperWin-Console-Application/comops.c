@@ -34,16 +34,24 @@ HWSTATUS MarkProcessProtected(IN HANDLE Handle, IN HANDLE ProcessHandle)
 	return HYPERWIN_STATUS_SUCCUESS;
 }
 
-HWSTATUS ProtectFileData(IN HANDLE Handle, IN HANDLE FileHandle, IN DWORD ProtectionOperation, IN PWCHAR Content,
-	IN PWCHAR Extension)
+HWSTATUS ProtectFileData(IN HANDLE Handle, IN HANDLE FileHandle, IN DWORD ProtectionOperation, IN DWORD Encoding, IN PVOID Content,
+	IN PVOID Extension)
 {
 	GENERIC_COM_STRUCT Args;
 	INT Dummy;
+	DWORD64 size;
 
 	Args.Operation = OPERATION_PROTECT_FILE_DATA;
 	Args.ArgumentsUnion.ProtectFileData.FileHandle = FileHandle;
-	Args.ArgumentsUnion.ProtectFileData.ContentLength = sizeof(WCHAR) * wcslen(Content);
-	memcpy(Args.ArgumentsUnion.ProtectFileData.Content, Content, Args.ArgumentsUnion.ProtectFileData.ContentLength);
+	if (Encoding == ENCODING_TYPE_UTF_8)
+		size = strlen((PCHAR)Content);
+	else if (Encoding == ENCODING_TYPE_UTF_16)
+		size = 2 * wcslen((PWCHAR)Content);
+	else
+		return HYPERWIN_UNKNOWN_ENCODING_TYPE;
+	Args.ArgumentsUnion.ProtectFileData.EncodingType = Encoding;
+	Args.ArgumentsUnion.ProtectFileData.ContentLength = size;
+	memcpy(Args.ArgumentsUnion.ProtectFileData.Content, Content, size);
 	Args.ArgumentsUnion.ProtectFileData.ProtectionOperation = ProtectionOperation;
 	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
 	{
