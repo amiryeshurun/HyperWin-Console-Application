@@ -38,6 +38,7 @@ VOID HandleProtectProcess(IN HANDLE CommunicationDriver)
     PWCHAR Token, ProcessName;
     DWORD64 ProcessId;
     HANDLE ProcessHandle;
+    HWSTATUS HwStatus;
 
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
@@ -95,9 +96,9 @@ ProtectProcessById:
             return;
         }
     }
-    if (MarkProcessProtected(CommunicationDriver, ProcessHandle) != HYPERWIN_STATUS_SUCCUESS)
+    if ((HwStatus = MarkProcessProtected(CommunicationDriver, ProcessHandle)) != HYPERWIN_STATUS_SUCCUESS)
     {
-        hvPrint(L"Could not mark process as protected\n");
+        hvPrint(L"Could not mark process as protected, HWSTATUS: %lld\n", HwStatus);
         return;
     }
     hvPrint(L"Successfully sent a request to mark process as protected\n");
@@ -128,6 +129,7 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
     BOOLEAN OperationSpecified = FALSE;
     DWORD ProtectionOperation = 0, EncodingTypeEnum = 0x1;
     HANDLE FileHandle = NULL;
+    HWSTATUS HwStatus;
 
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
@@ -144,7 +146,7 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 NULL, OPEN_EXISTING,
                 FILE_ATTRIBUTE_NORMAL,  
-                NULL)) == NULL)
+                NULL)) == INVALID_HANDLE_VALUE)
             {
                 if (GetLastError() == ERROR_FILE_NOT_FOUND)
                 {
@@ -203,15 +205,15 @@ PerformProtection:
     else if (EncodingTypeEnum == ENCODING_TYPE_UTF_16)
         memcpy(HiddenContent, ContentUtf16, (wcslen(ContentUtf16) + 1)* sizeof(WCHAR));
     // Send a request to HyperWin
-    if (ProtectFileData(CommunicationDriver,
+    if ((HwStatus = ProtectFileData(CommunicationDriver,
         FileHandle,
         ProtectionOperation,
         EncodingTypeEnum,
         HiddenContent,
-        NULL)
+        NULL))
         != HYPERWIN_STATUS_SUCCUESS)
     {
-        hvPrint(L"Failed to protect the specified data\n");
+        hvPrint(L"Failed to protect the specified data, HWSTATUS: %lld\n", HwStatus);
     }
     CloseHandle(FileHandle);
 }
@@ -263,6 +265,7 @@ VOID HandleRemoveProtection(IN HANDLE CommunicationDriver)
 {
     HANDLE FileHandle = NULL;
     PWCHAR Token;
+    HWSTATUS HwStatus;
 
     while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
     {
@@ -287,8 +290,8 @@ VOID HandleRemoveProtection(IN HANDLE CommunicationDriver)
             }
         }
     }
-    
-    if (RemoveFileProtection(CommunicationDriver, FileHandle) != HYPERWIN_STATUS_SUCCUESS)
-        hvPrint(L"Could not remove protection from file\n");
+    if ((HwStatus = RemoveFileProtection(CommunicationDriver, FileHandle))
+            != HYPERWIN_STATUS_SUCCUESS)
+        hvPrint(L"Could not remove protection from file, HWSTATUS: %lld\n", HwStatus);
     CloseHandle(FileHandle);
 }
