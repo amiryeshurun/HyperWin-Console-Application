@@ -32,6 +32,10 @@ typedef struct _GENERIC_COM_STRUCT
             DWORD ProtectionOperation;
             DWORD EncodingType;
         } ProtectFileData;
+        struct _REMOVE_FILE_OPERATION
+        {
+            HANDLE FileHandle;
+        } RemoveFileProtection;
     } ArgumentsUnion;
 } GENERIC_COM_STRUCT, * PGENERIC_COM_STRUCT;
 

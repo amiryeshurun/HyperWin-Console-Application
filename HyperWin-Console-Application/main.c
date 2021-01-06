@@ -3,7 +3,7 @@
 #include "hwstatus.h"
 #include "progops.h"
 
-#define TEST_MODE
+// #define TEST_MODE
 
 INT main()
 {

@@ -28,6 +28,8 @@ VOID ProgramLoop(IN HANDLE CommunicationDriver)
             HandleProtectFileData(CommunicationDriver);
         else if (!wcscmp(Token, L"get-file-id", wcslen(L"get-file-id")))
             HandleGetFileId();
+        else if (!wcscmp(Token, L"remove-file-protection", wcslen(L"remove-file-protection")))
+            HandleRemoveProtection(CommunicationDriver);
     }
 }
 
@@ -199,7 +201,7 @@ PerformProtection:
     }
     // Else, just copy it to the buffer
     else if (EncodingTypeEnum == ENCODING_TYPE_UTF_16)
-        memcpy(HiddenContent, ContentUtf16, wcslen(ContentUtf16) * sizeof(WCHAR));
+        memcpy(HiddenContent, ContentUtf16, (wcslen(ContentUtf16) + 1)* sizeof(WCHAR));
     // Send a request to HyperWin
     if (ProtectFileData(CommunicationDriver,
         FileHandle,
@@ -255,4 +257,38 @@ VOID HandleGetFileId()
     }
     else
         hvPrint(L"You must enter a file path\n");
+}
+
+VOID HandleRemoveProtection(IN HANDLE CommunicationDriver)
+{
+    HANDLE FileHandle = NULL;
+    PWCHAR Token;
+
+    while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    {
+        if (!wcscmp(Token, L"-p"))
+        {
+            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
+            {
+                hvPrint(L"You must enter a path to a file\n");
+                return;
+            }
+            FileHandle = CreateFileW(Token,
+                MAXIMUM_ALLOWED,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                NULL,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                NULL);
+            if (FileHandle == INVALID_HANDLE_VALUE)
+            {
+                hvPrint(L"Could not open file: %d", GetLastError());
+                return;
+            }
+        }
+    }
+    
+    if (RemoveFileProtection(CommunicationDriver, FileHandle) != HYPERWIN_STATUS_SUCCUESS)
+        hvPrint(L"Could not remove protection from file\n");
+    CloseHandle(FileHandle);
 }

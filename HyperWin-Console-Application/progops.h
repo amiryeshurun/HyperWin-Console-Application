@@ -8,5 +8,6 @@ VOID HandleProtectProcess(IN HANDLE CommunicationDriver);
 VOID HandleGetProcess();
 VOID HandleProtectFileData(IN HANDLE CommunicationDriver);
 VOID HandleGetFileId();
+VOID HandleRemoveProtection(IN HANDLE CommunicationDriver);
 
 #endif

@@ -60,3 +60,19 @@ HWSTATUS ProtectFileData(IN HANDLE Handle, IN HANDLE FileHandle, IN DWORD Protec
 	}
 	return HYPERWIN_STATUS_SUCCUESS;
 }
+
+HWSTATUS RemoveFileProtection(IN HANDLE Handle, IN HANDLE FileHandle)
+{
+	GENERIC_COM_STRUCT Args;
+	INT Dummy;
+	DWORD64 size;
+
+	Args.Operation = OPERATION_REMOVE_FILE_PROTECTION;
+	Args.ArgumentsUnion.RemoveFileProtection.FileHandle = FileHandle;
+	if (!DeviceIoControl(Handle, CTL_CODE_HW, &Args, sizeof(Args), NULL, 0, &Dummy, NULL))
+	{
+		hvPrint(L"DeviceIoControl failed: %d\n", GetLastError());
+		return HYPERWIN_IOCTL_FAILED;
+	}
+	return HYPERWIN_STATUS_SUCCUESS;
+}
