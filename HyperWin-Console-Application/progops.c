@@ -11,100 +11,92 @@
 VOID ProgramLoop(IN HANDLE CommunicationDriver)
 {
     WCHAR InputBuffer[BUFFER_MAX_SIZE];
-    PWCHAR Token;
+    PWCHAR* Tokens;
+    HWSTATUS Status;
+
     while (TRUE)
     {
         fgetws(InputBuffer, BUFFER_MAX_SIZE, stdin);
         if (InputBuffer[wcslen(InputBuffer) - 1] == L'\n')
             InputBuffer[wcslen(InputBuffer) - 1] = L'\0';
-        Token = wcstok(InputBuffer, L" ", NULL);
-        if (!wcsncmp(Token, L"exit", 4))
+        if ((Status = GetTokens(InputBuffer, &Tokens)) != HYPERWIN_STATUS_SUCCUESS)
+        {
+            PrintErrorMessage(Status);
+            continue;
+        }
+        Status = DispatchCommand(CommunicationDriver, Tokens);
+        if (Status == HYPERWIN_EXIT)
+        {
+            FreeTokens(Tokens);
             break;
-        else if (!wcsncmp(Token, L"protect-process", wcslen(L"protect-process")))
-            HandleProtectProcess(CommunicationDriver, InputBuffer);
-        else if (!wcsncmp(Token, L"get-process", wcslen(L"get-process")))
-            HandleGetProcess();
-        else if (!wcsncmp(Token, L"protect-file-data", wcslen(L"protect-file-data")))
-            HandleProtectFileData(CommunicationDriver);
-        else if (!wcscmp(Token, L"get-file-id", wcslen(L"get-file-id")))
-            HandleGetFileId();
-        else if (!wcscmp(Token, L"remove-file-protection", wcslen(L"remove-file-protection")))
-            HandleRemoveProtection(CommunicationDriver);
+        }
+        else if(Status != HYPERWIN_STATUS_SUCCUESS)
+            PrintErrorMessage(Status);
+        FreeTokens(Tokens);
     }
+    
 }
 
-VOID HandleProtectProcess(IN HANDLE CommunicationDriver)
+HWSTATUS DispatchCommand(IN HANDLE CommunicationDriver, IN PWCHAR* Tokens)
 {
-    PWCHAR Token, ProcessName;
+    if (!wcsncmp(*Tokens, L"exit", 4))
+        return HYPERWIN_EXIT;
+    else if (!wcsncmp(*Tokens, L"protect-process", wcslen(L"protect-process")))
+        return HandleProtectProcess(CommunicationDriver, ++Tokens);
+    else if (!wcsncmp(*Tokens, L"get-process", wcslen(L"get-process")))
+        return HandleGetProcess();
+    else if (!wcsncmp(*Tokens, L"protect-file-data", wcslen(L"protect-file-data")))
+        return HandleProtectFileData(CommunicationDriver, ++Tokens);
+    else if (!wcscmp(*Tokens, L"get-file-id", wcslen(L"get-file-id")))
+        return HandleGetFileId(++Tokens);
+    else if (!wcscmp(*Tokens, L"remove-file-protection", wcslen(L"remove-file-protection")))
+        return HandleRemoveProtection(CommunicationDriver, ++Tokens);
+    else if (!wcscmp(*Tokens, L"create-group", wcslen(L"remove-file-protection")))
+        return HandleCreateGroup(CommunicationDriver, ++Tokens);
+
+}
+
+HWSTATUS HandleProtectProcess(IN HANDLE CommunicationDriver, IN PWCHAR* Tokens)
+{
+    PWCHAR ProcessName;
     DWORD64 ProcessId;
     HANDLE ProcessHandle;
-    HWSTATUS HwStatus;
+    HWSTATUS HwStatus = HYPERWIN_STATUS_SUCCUESS;
 
-    while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    while (*Tokens)
     {
-        if (!wcsncmp(Token, L"-n", 2))
+        if (!wcsncmp(*Tokens, L"-n", 2))
         {
-            if ((ProcessName = wcstok(NULL, L" ", NULL)) != NULL)
-            {
-                if (GetProcessIdByName(ProcessName, &ProcessId) != HYPERWIN_STATUS_SUCCUESS)
-                {
-                    hvPrint(L"Could not find process name: %ls\n", ProcessName);
-                    return;
-                }
-                goto ProtectProcessById;
-            }
-            else
-            {
-                hvPrint(L"You must ennter a process name");
-                return;
-            }
+            ProcessName = *(++Tokens);
+            if (!ProcessName || GetProcessIdByName(ProcessName, &ProcessId) != HYPERWIN_STATUS_SUCCUESS)
+                return HYPERWIN_PROCESS_NOT_FOUND;
         }
-        else if (!wcsncmp(Token, L"-i", 2))
+        else if (!wcsncmp(*Tokens, L"-i", 2))
         {
-            if ((Token = wcstok(NULL, L" ", NULL)) != NULL)
-            {
-                ProcessId = _wtoi64(Token);
-                goto ProtectProcessById;
-            }
-            else
-            {
-                hvPrint(L"You must enter a process ID\n");
-                return;
-            }
+            Tokens++;
+            ProcessId = _wtoi64(*Tokens);
         }
-        else if (!wcsncmp(Token, L"--self", 6))
-        {
+        else if (!wcsncmp(*Tokens, L"--self", 6))
             ProcessId = -1;
-            goto ProtectProcessById;
-        }
         else
-        {
-            hvPrint(L"Unknown option: %ls\n", Token);
-            return;
-        }
+            return HYPERWIN_UNKNOWN_COMMAND;
+        Tokens++;
     }
 
-ProtectProcessById:
     if (ProcessId == -1)
         ProcessHandle = GetCurrentProcess();
     else
     {
         if ((ProcessHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, ProcessId))
-            == NULL)
-        {
-            hvPrint(L"Failed to open a handle to the desired process\n");
-            return;
-        }
+            == INVALID_HANDLE_VALUE)
+            return HYPERWIN_INVALID_HANDLE;
     }
-    if ((HwStatus = MarkProcessProtected(CommunicationDriver, ProcessHandle)) != HYPERWIN_STATUS_SUCCUESS)
-    {
-        hvPrint(L"Could not mark process as protected, HWSTATUS: %lld\n", HwStatus);
-        return;
-    }
-    hvPrint(L"Successfully sent a request to mark process as protected\n");
+    HwStatus = MarkProcessProtected(CommunicationDriver, ProcessHandle);
+    CloseHandle(ProcessHandle);
+    return HwStatus;
 }
 
-VOID HandleGetProcess()
+HWSTATUS HandleGetProcess()
 {
     PROCESSENTRY32W Entry;
     HANDLE Snapshot;
@@ -120,28 +112,24 @@ VOID HandleGetProcess()
             wprintf(L"%ls: %d\n", Entry.szExeFile, Entry.th32ProcessID);
         }
     }
+    return HYPERWIN_STATUS_SUCCUESS;
 }
 
-VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
+HWSTATUS HandleProtectFileData(IN HANDLE CommunicationDriver, IN PWCHAR* Tokens)
 {
-    PWCHAR Token, FilePath = NULL, ContentUtf16 = NULL;
+    PWCHAR FilePath = NULL, ContentUtf16 = NULL;
     BYTE HiddenContent[BUFFER_MAX_SIZE];
     BOOLEAN OperationSpecified = FALSE;
     DWORD ProtectionOperation = 0, EncodingTypeEnum = 0x1;
     HANDLE FileHandle = NULL;
-    HWSTATUS HwStatus;
+    HWSTATUS HwStatus = HYPERWIN_STATUS_SUCCUESS;
 
-    while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    while (*Tokens)
     {
-        if (!wcsncmp(Token, L"-p", 2))
+        if (!wcsncmp(*Tokens, L"-p", 2))
         {
-            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
-            {
-                hvPrint(L"You must enter a file path\n");
-                return;
-            }
             // Token now contains the full file path as unicode string
-            if ((FileHandle = CreateFileW(Token,
+            if ((FileHandle = CreateFileW(*(++Tokens),
                 MAXIMUM_ALLOWED,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 NULL, OPEN_EXISTING,
@@ -149,46 +137,34 @@ VOID HandleProtectFileData(IN HANDLE CommunicationDriver)
                 NULL)) == INVALID_HANDLE_VALUE)
             {
                 if (GetLastError() == ERROR_FILE_NOT_FOUND)
-                {
-                    hvPrint(L"This file does not exist\n");
-                    return;
-                }
+                    return HYPERWIN_FILE_NOT_FOUND;
             }
         }
-        if (!wcsncmp(Token, L"-h", 2))
+        else if (!wcsncmp(*Tokens, L"-h", 2))
         {
             OperationSpecified = TRUE;
             if (FileHandle == NULL)
-            {
-                hvPrint(L"You can not use -h without specifying the file path\n");
-                return;
-            }
+                return HYPERWIN_PATH_MUST_BE_SPECIFIED;
             ProtectionOperation = FILE_PROTECTION_HIDE;
-            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
-            {
-                hvPrint(L"You must specify the contect to hide\n");
-                return;
-            }
-            ContentUtf16 = _wcsdup(Token);
+            ContentUtf16 = _wcsdup(*(++Tokens));
         }
-        if (!wcsncmp(Token, L"-e", 2))
+        else if (!wcsncmp(*Tokens, L"-e", 2))
         {
-            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
-            {
-                hvPrint(L"You must specify encoding type when using the -e flag\n");
-                return;
-            }
-            if (!wcscmp(Token, L"utf-16"))
+            if (*(Tokens + 1) == NULL)
+                return HYPERWIN_UNKNOWN_ENCODING_TYPE;
+            Tokens++;
+            if (!wcscmp(*Tokens, L"utf-16"))
                 EncodingTypeEnum = ENCODING_TYPE_UTF_16;
+            else if (!wcscmp(*Tokens, L"utf-8"))
+                EncodingTypeEnum = ENCODING_TYPE_UTF_8;
+            else
+                return HYPERWIN_UNKNOWN_ENCODING_TYPE;
         }
+        Tokens++;
     }
-
-PerformProtection:
     if (!OperationSpecified)
-    {
-        hvPrint(L"You must specify the protection operation\n");
-        return;
-    }
+        return HYPERWIN_UNKNOWN_OPERATION;
+
     // If the encoding type is utf-8, we must convert the input
     if (EncodingTypeEnum == ENCODING_TYPE_UTF_8)
     {
@@ -205,22 +181,19 @@ PerformProtection:
     else if (EncodingTypeEnum == ENCODING_TYPE_UTF_16)
         memcpy(HiddenContent, ContentUtf16, (wcslen(ContentUtf16) + 1)* sizeof(WCHAR));
     // Send a request to HyperWin
-    if ((HwStatus = ProtectFileData(CommunicationDriver,
+    HwStatus = ProtectFileData(CommunicationDriver,
         FileHandle,
         ProtectionOperation,
         EncodingTypeEnum,
         HiddenContent,
-        NULL))
-        != HYPERWIN_STATUS_SUCCUESS)
-    {
-        hvPrint(L"Failed to protect the specified data, HWSTATUS: %lld\n", HwStatus);
-    }
+        NULL);
     CloseHandle(FileHandle);
+    return HwStatus;
 }
 
-VOID HandleGetFileId()
+HWSTATUS HandleGetFileId(IN PWCHAR* Tokens)
 {
-    PWCHAR Token, FilePath = NULL;
+    PWCHAR FilePath = NULL;
     HANDLE FileHandle = NULL;
     _NtQueryInformationFile NtQueryInformationFile;
     IO_STATUS_BLOCK IoStatusBlock;
@@ -228,70 +201,65 @@ VOID HandleGetFileId()
     DWORD64 FileId;
     NTSTATUS NtStatus;
 
-    if((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    if (!(*Tokens) || wcscmp(*Tokens, L"-p", 2))
+        return HYPERWIN_PATH_MUST_BE_SPECIFIED;
+        
+    // Token now contains a name of a file
+    if ((FileHandle = CreateFileW(*(++Tokens),
+        MAXIMUM_ALLOWED,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL)) == INVALID_HANDLE_VALUE)
     {
-        // Token now contains a name of a file
-        if ((FileHandle = CreateFileW(Token,
-            MAXIMUM_ALLOWED,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL, OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL)) == NULL)
-        {
-            hvPrint(L"Could not open file: %d", GetLastError());
-            return;
-        }
-        if ((Status = LoadNtdllFunction("NtQueryInformationFile", &NtQueryInformationFile)) != HYPERWIN_STATUS_SUCCUESS)
-        {
-            hvPrint(L"Failed to load NtQuertyInformationFile: %d\n", Status);
-            CloseHandle(FileHandle);
-            return;
-        }
-        NtStatus = NtQueryInformationFile(FileHandle, &IoStatusBlock, &FileId, sizeof(FileId), 6);
-        if (!NT_SUCCESS(NtStatus))
-        {
-            hvPrint(L"Failed to get file info. NTSTATUS: %llx, Error code: %d\n", NtStatus, GetLastError());
-            CloseHandle(FileHandle);
-            return;
-        }
-        wprintf(L"%llx\n", FileId);
-        CloseHandle(FileHandle);
+        if (GetLastError() == ERROR_FILE_NOT_FOUND)
+            return HYPERWIN_FILE_NOT_FOUND;
     }
-    else
-        hvPrint(L"You must enter a file path\n");
+    if ((Status = LoadNtdllFunction("NtQueryInformationFile", &NtQueryInformationFile)) != HYPERWIN_STATUS_SUCCUESS)
+    {
+        CloseHandle(FileHandle);
+        return Status;
+    }
+    NtStatus = NtQueryInformationFile(FileHandle, &IoStatusBlock, &FileId, sizeof(FileId), 6);
+    if (!NT_SUCCESS(NtStatus))
+    {
+        CloseHandle(FileHandle);
+        return HYPERWIN_QUERY_INFO_FAILED;;
+    }
+    wprintf(L"%llx\n", FileId);
+    CloseHandle(FileHandle);
+    return HYPERWIN_STATUS_SUCCUESS;
 }
 
-VOID HandleRemoveProtection(IN HANDLE CommunicationDriver)
+HWSTATUS HandleRemoveProtection(IN HANDLE CommunicationDriver, IN PWCHAR* Tokens)
 {
     HANDLE FileHandle = NULL;
-    PWCHAR Token;
-    HWSTATUS HwStatus;
+    HWSTATUS HwStatus = HYPERWIN_STATUS_SUCCUESS;
 
-    while ((Token = wcstok(NULL, L" ", NULL)) != NULL)
+    while (*Tokens)
     {
-        if (!wcscmp(Token, L"-p"))
+        if (!wcscmp(*Tokens, L"-p"))
         {
-            if ((Token = wcstok(NULL, L" ", NULL)) == NULL)
-            {
-                hvPrint(L"You must enter a path to a file\n");
-                return;
-            }
-            FileHandle = CreateFileW(Token,
+            FileHandle = CreateFileW(*(++Tokens),
                 MAXIMUM_ALLOWED,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 NULL,
                 OPEN_EXISTING,
                 FILE_ATTRIBUTE_NORMAL,
                 NULL);
-            if (FileHandle == INVALID_HANDLE_VALUE)
-            {
-                hvPrint(L"Could not open file: %d", GetLastError());
-                return;
-            }
+            if (GetLastError() == ERROR_FILE_NOT_FOUND)
+                return HYPERWIN_FILE_NOT_FOUND;
         }
+        Tokens++;
     }
-    if ((HwStatus = RemoveFileProtection(CommunicationDriver, FileHandle))
-            != HYPERWIN_STATUS_SUCCUESS)
-        hvPrint(L"Could not remove protection from file, HWSTATUS: %lld\n", HwStatus);
+    if (!FileHandle)
+        return HYPERWIN_PATH_MUST_BE_SPECIFIED;
+    HwStatus = RemoveFileProtection(CommunicationDriver, FileHandle);
     CloseHandle(FileHandle);
+    return HwStatus;
+}
+
+HWSTATUS HandleCreateGroup(IN HANDLE CommunicationDriver, IN PWCHAR* Tokens)
+{
+    return HYPERWIN_STATUS_SUCCUESS;
 }
