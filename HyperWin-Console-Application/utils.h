@@ -7,6 +7,10 @@
 
 VOID DebugOutA(PCHAR fmt, ...);
 HWSTATUS GetProcessIdByName(IN PWCHAR ProcessName, OUT PDWORD64 ProcessId);
+HWSTATUS GetTokens(IN PWCHAR InputBuffer, OUT PWCHAR** OutputTokens);
+VOID PrintErrorMessage(IN HWSTATUS Status);
+VOID FreeTokens(IN PWCHAR* Tokens);
+VOID PrintTokens(IN PWCHAR* Tokens);
 
 #define hvPrint(str, ...) wprintf(L"HyperWin :: " \
 												str, \
